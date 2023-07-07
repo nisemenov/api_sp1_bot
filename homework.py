@@ -21,7 +21,7 @@ def timediff(current_datetime, date_time):
     parsed_date = dt.strptime(date_time, date_format)
     time_diff = current_datetime - parsed_date
     time_diff_minutes = time_diff.total_seconds() / 60
-    return int(time_diff_minutes)
+    return time_diff_minutes
 
 
 def get_event_statuses(current_time):
@@ -43,8 +43,7 @@ def get_event_statuses(current_time):
 
 def parse_event_status(event, current_time):
     date_created = event['created_at']
-    time_diff = timediff(current_time, date_created)
-
+    time_diff = int(timediff(current_time, date_created))
     repo = event['repo']
     repo_name = repo['name'].split('/')[1]
     type_event = event['type']
