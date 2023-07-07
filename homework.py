@@ -4,7 +4,7 @@ import telegram
 import asyncio
 import time
 from datetime import datetime as dt
-from datetime import timedelta as td
+# from datetime import timedelta as td
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -32,6 +32,7 @@ def get_event_statuses(current_time):
     }
     response = requests.get(url, headers=headers)
     datetime_str = response.json()[0]['created_at']
+    print(response.json()[0])
     time_diff = timediff(current_time, datetime_str)
 
     if time_diff < 20:
