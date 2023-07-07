@@ -22,10 +22,10 @@ def timediff(current_datetime, date_time):
     parsed_date = dt.strptime(date_time, date_format) + td(hours=3)
     time_diff = current_datetime - parsed_date
     time_diff_minutes = time_diff.total_seconds() / 60
-    return abs(time_diff_minutes)
+    return int(time_diff_minutes)
 
 
-def get_event_statuses(current_datetime):
+def get_event_statuses(current_time):
     url = f'https://api.github.com/users/{GIT_USER}/events'
     headers = {
         'Authorization': f'Bearer {GIT_TOKEN}',
@@ -33,7 +33,7 @@ def get_event_statuses(current_datetime):
     }
     response = requests.get(url, headers=headers)
     datetime_str = response.json()[0]['created_at']
-    time_diff = timediff(current_datetime, datetime_str)
+    time_diff = timediff(current_time, datetime_str)
 
     if time_diff < 20:
         if response.status_code == 200:
@@ -42,10 +42,9 @@ def get_event_statuses(current_datetime):
             return f'Error has occurred: {response.status_code}'
 
 
-def parse_event_status(event):
+def parse_event_status(event, current_time):
     date_created = event['created_at']
-    global current_datetime
-    time_diff = timediff(current_datetime, date_created)
+    time_diff = timediff(current_time, date_created)
 
     repo = event['repo']
     repo_name = repo['name'].split('/')[1]
@@ -55,8 +54,8 @@ def parse_event_status(event):
         committer = commit[0]['author']['name']
         message = commit[0]['message']
         return f"{committer} made new {type_event} with message '{message}' " \
-               f"at {date_created}!\nRepo's name is '{repo_name}'."
-    return f"{GIT_USER} made new {type_event} at {date_created}!\n" \
+               f"{time_diff} minutes ago!\nRepo's name is '{repo_name}'."
+    return f"{GIT_USER} made new {type_event} {time_diff} minutes ago!\n" \
            f"Repo's name is {repo_name}."
 
 
@@ -71,7 +70,7 @@ def main():
         try:
             new_event = get_event_statuses(current_time)
             if new_event.get('id'):
-                asyncio.run(send_message(parse_event_status(new_event)))
+                asyncio.run(send_message(parse_event_status(new_event, current_time)))
             current_time = dt.now()
             time.sleep(600)
         except Exception as e:
