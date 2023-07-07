@@ -34,7 +34,7 @@ def get_event_statuses(current_time):
     datetime_str = response.json()[0]['created_at']
     time_diff = timediff(current_time, datetime_str)
 
-    if time_diff < 20:
+    if time_diff < 15:
         if response.status_code == 200:
             return response.json()[0]
         else:
@@ -72,10 +72,10 @@ def main():
                 asyncio.run(send_message(parse_event_status(new_event,
                                                             current_time)))
             current_time = dt.now()
-            time.sleep(600)
+            time.sleep(60*15)
         except Exception as e:
             print(f'Error has occurred: {e}')
-            time.sleep(600)
+            time.sleep(60*15)
             continue
 
 
