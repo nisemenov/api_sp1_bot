@@ -70,8 +70,8 @@ def main():
             if new_event.get('id'):
                 asyncio.run(send_message(parse_event_status(new_event,
                                                             current_time)))
-            current_time = dt.now()
             time.sleep(60*15)
+            current_time = dt.now()
         except Exception as e:
             print(f'Error has occurred: {e}')
             time.sleep(60*15)
