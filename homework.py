@@ -18,7 +18,7 @@ GIT_USER = os.getenv('GIT_USER')
 
 def timediff(current_datetime, date_time):
     date_format = '%Y-%m-%dT%H:%M:%SZ'
-    parsed_date = dt.strptime(date_time, date_format) + td(hours=3)
+    parsed_date = dt.strptime(date_time, date_format)
     time_diff = current_datetime - parsed_date
     time_diff_minutes = time_diff.total_seconds() / 60
     return int(time_diff_minutes)
