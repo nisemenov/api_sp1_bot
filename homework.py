@@ -1,50 +1,81 @@
+import datetime
 import os
 import requests
 import telegram
+import asyncio
 import time
+from datetime import datetime as dt
+from datetime import timedelta as td
 from dotenv import load_dotenv
 
 load_dotenv()
 
-
-PRACTICUM_TOKEN = os.getenv("PRACTICUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+CHAT_ID = os.getenv('CHAT_ID')
+
+GIT_TOKEN = os.getenv('GIT_TOKEN')
+GIT_USER = os.getenv('GIT_USER')
 
 
-def parse_homework_status(homework):
-    homework_name = ...
-    if ...
-        verdict = 'К сожалению в работе нашлись ошибки.'
-    else:
-        verdict = 'Ревьюеру всё понравилось, можно приступать к следующему уроку.'
-    return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
+def timediff(current_datetime, date_time):
+    date_format = '%Y-%m-%dT%H:%M:%SZ'
+    parsed_date = dt.strptime(date_time, date_format) + td(hours=3)
+    time_diff = current_datetime - parsed_date
+    time_diff_minutes = time_diff.total_seconds() / 60
+    return abs(time_diff_minutes)
 
 
-def get_homework_statuses(current_timestamp):
-    ...
-    homework_statuses = ...
-    return homework_statuses.json()
+def get_event_statuses(current_datetime):
+    url = f'https://api.github.com/users/{GIT_USER}/events'
+    headers = {
+        'Authorization': f'Bearer {GIT_TOKEN}',
+        'X-GitHub-Api-Version': '2022-11-28',
+    }
+    response = requests.get(url, headers=headers)
+    datetime_str = response.json()[0]['created_at']
+    time_diff = timediff(current_datetime, datetime_str)
+
+    if time_diff < 20:
+        if response.status_code == 200:
+            return response.json()[0]
+        else:
+            return f'Error has occurred: {response.status_code}'
 
 
-def send_message(message):
-    ...
-    return bot.send_message(...)
+def parse_event_status(event):
+    date_created = event['created_at']
+    global current_datetime
+    time_diff = timediff(current_datetime, date_created)
+
+    repo = event['repo']
+    repo_name = repo['name'].split('/')[1]
+    type_event = event['type']
+    if type_event == 'PushEvent':
+        commit = event['payload']['commits']
+        committer = commit[0]['author']['name']
+        message = commit[0]['message']
+        return f"{committer} made new {type_event} with message '{message}' " \
+               f"at {date_created}!\nRepo's name is '{repo_name}'."
+    return f"{GIT_USER} made new {type_event} at {date_created}!\n" \
+           f"Repo's name is {repo_name}."
+
+
+async def send_message(message):
+    async with telegram.Bot(TELEGRAM_TOKEN) as bot:
+        await bot.sendMessage(chat_id=CHAT_ID, text=message)
 
 
 def main():
-    current_timestamp = int(time.time())  # начальное значение timestamp
-
+    current_time = dt.now()
     while True:
         try:
-            new_homework = get_homework_statuses(current_timestamp)
-            if new_homework.get('homeworks'):
-                send_message(parse_homework_status(new_homework.get('homeworks')[0]))
-            current_timestamp = new_homework.get('current_date')  # обновить timestamp
-            time.sleep(300)  # опрашивать раз в пять минут
-
+            new_event = get_event_statuses(current_time)
+            if new_event.get('id'):
+                asyncio.run(send_message(parse_event_status(new_event)))
+            current_time = dt.now()
+            time.sleep(600)
         except Exception as e:
-            print(f'Бот упал с ошибкой: {e}')
+            print(f'Error has occurred: {e}')
             time.sleep(5)
             continue
 
